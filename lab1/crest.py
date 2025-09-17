@@ -14,8 +14,22 @@ while True:
     h, w = frame.shape[:2]
     center_x, center_y = w // 2, h // 2
 
-    color = (0, 0, 255)  
-    thickness = 2
+    b, g, r = frame[center_y, center_x]
+
+    colors = {
+        'red': (0, 0, 255),
+        'green': (0, 255, 0),
+        'blue': (255, 0, 0)
+    }
+
+    distances = {}
+    for name, (cb, cg, cr) in colors.items():
+        distances[name] = (int(r) - cr)**2 + (int(g) - cg)**2 + (int(b) - cb)**2
+
+    nearest_color = min(distances, key=distances.get)
+    color = colors[nearest_color]
+
+    thickness = -1
     vert_height = 200
     hor_width = 200
     bar_thickness = 20
