@@ -8,16 +8,29 @@ import cv2 as cv
 
 cap = cv.VideoCapture("lab1/dance.mov")
 
+fps = cap.get(cv.CAP_PROP_FPS)
+width = int(cap.get(cv.CAP_PROP_FRAME_WIDTH))
+height = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))
+
+print(f"Размер: {width}x{height}, FPS: {fps}")
+
+fourcc = cv.VideoWriter_fourcc(*'mp4v')
+out = cv.VideoWriter("lab1/dance_copy.mp4", fourcc, fps, (width, height))
+
 while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
         break
 
-    gray = cv.cvtColor(frame, cv.COLOR_BGR2Lab)   
-    cv.imshow("Video", gray)
+    lab = cv.cvtColor(frame, cv.COLOR_BGR2Lab)
+
+    out.write(lab)
+
+    cv.imshow("Video", lab)
 
     if cv.waitKey(25) & 0xFF == ord('q'):
         break
 
 cap.release()
+out.release()
 cv.destroyAllWindows()
