@@ -1,6 +1,10 @@
 import cv2 as cv
 
-cap = cv.VideoCapture(1)
+# cap = cv.VideoCapture(1)
+
+url = "http://192.168.1.67:4747/video"
+
+cap = cv.VideoCapture(url)
 
 if not cap.isOpened():
     print("Камера не найдена")
