@@ -8,30 +8,36 @@ while True:
     if not ret:
         break
 
-    # Преобразуем изображение в HSV
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-    # Диапазоны для красного цвета
     lower_red1 = np.array([0, 140, 60])
     upper_red1 = np.array([10, 255, 255])
-
     lower_red2 = np.array([170, 140, 60])
     upper_red2 = np.array([180, 255, 255])
 
-    # Создаем две маски и объединяем их
     mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
     mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
     mask = cv2.bitwise_or(mask1, mask2)
 
-    # Применяем маску к оригинальному изображению
-    red_only = cv2.bitwise_and(frame, frame, mask=mask)
+    red_filtered = cv2.bitwise_and(frame, frame, mask=mask)
 
-    # Показываем результат
+    kernel = np.ones((5, 5), np.uint8)
+
+    # Открытие = erode → dilate
+    eroded = cv2.erode(mask, kernel, iterations=1)
+    opening = cv2.dilate(eroded, kernel, iterations=1)
+
+    # Закрытие = dilate → erode
+    dilated = cv2.dilate(opening, kernel, iterations=1)
+    closing = cv2.erode(dilated, kernel, iterations=1)
+
+    red_filtered_morph = cv2.bitwise_and(frame, frame, mask=closing)
+
+    # Вывод
     cv2.imshow("Original", frame)
-    cv2.imshow("Threshold (Red mask)", mask)
-    cv2.imshow("Filtered (Red Only)", red_only)
+    cv2.imshow("Filtered Red Only", red_filtered)
+    cv2.imshow("Filtered Red Only Morphed", red_filtered_morph)
 
-    # Нажми ESC для выхода
     if cv2.waitKey(1) & 0xFF == 27:
         break
 
