@@ -22,26 +22,32 @@ while True:
     kernel = np.ones((5, 5), np.uint8)
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-    
-    red_filtered = cv2.bitwise_and(frame, frame, mask=mask)
 
-    moments = cv2.moments(mask)
-    area = moments['m00']
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    if area > 0:
-        cx = int(moments['m10'] / area)
-        cy = int(moments['m01'] / area)
-        cv2.circle(frame, (cx, cy), 5, (0, 255, 0), -1)
-        cv2.putText(frame, f"Area: {int(area)}", (10, 30),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        cv2.putText(frame, f"Center: ({cx},{cy})", (10, 70),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-    else:
-        cv2.putText(frame, "No red object detected", (10, 30),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+    if contours:
+        largest_contour = max(contours, key=cv2.contourArea)
+        area = cv2.contourArea(largest_contour)
 
-    cv2.imshow("Original with Moments", frame)
-    cv2.imshow("Red filtered", red_filtered)
+        if area > 500:
+            x, y, w, h = cv2.boundingRect(largest_contour)
+
+            cx = x + w // 2
+            cy = y + h // 2
+
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 0), 2)
+            cv2.circle(frame, (cx, cy), 5, (0, 255, 0), -1)
+
+            cv2.putText(frame, f"Area: {int(area)}", (10, 30),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            cv2.putText(frame, f"Center: ({cx},{cy})", (10, 70),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        else:
+            cv2.putText(frame, "No significant red object", (10, 30),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+
+    cv2.imshow("Original + Rectangle", frame)
+    cv2.imshow("Red Mask", mask)
 
     if cv2.waitKey(1) & 0xFF == 27:
         break
