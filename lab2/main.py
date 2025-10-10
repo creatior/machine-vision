@@ -19,24 +19,29 @@ while True:
     mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
     mask = cv2.bitwise_or(mask1, mask2)
 
+    kernel = np.ones((5, 5), np.uint8)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+    
     red_filtered = cv2.bitwise_and(frame, frame, mask=mask)
 
-    kernel = np.ones((5, 5), np.uint8)
+    moments = cv2.moments(mask)
+    area = moments['m00']
 
-    # Открытие = erode → dilate
-    eroded = cv2.erode(mask, kernel, iterations=1)
-    opening = cv2.dilate(eroded, kernel, iterations=1)
+    if area > 0:
+        cx = int(moments['m10'] / area)
+        cy = int(moments['m01'] / area)
+        cv2.circle(frame, (cx, cy), 5, (0, 255, 0), -1)
+        cv2.putText(frame, f"Area: {int(area)}", (10, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        cv2.putText(frame, f"Center: ({cx},{cy})", (10, 70),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+    else:
+        cv2.putText(frame, "No red object detected", (10, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
-    # Закрытие = dilate → erode
-    dilated = cv2.dilate(opening, kernel, iterations=1)
-    closing = cv2.erode(dilated, kernel, iterations=1)
-
-    red_filtered_morph = cv2.bitwise_and(frame, frame, mask=closing)
-
-    # Вывод
-    cv2.imshow("Original", frame)
-    cv2.imshow("Filtered Red Only", red_filtered)
-    cv2.imshow("Filtered Red Only Morphed", red_filtered_morph)
+    cv2.imshow("Original with Moments", frame)
+    cv2.imshow("Red filtered", red_filtered)
 
     if cv2.waitKey(1) & 0xFF == 27:
         break
