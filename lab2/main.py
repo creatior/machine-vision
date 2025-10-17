@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 
 cap = cv2.VideoCapture(1)
+kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
 
 while True:
     ret, frame = cap.read()
@@ -19,25 +20,28 @@ while True:
     mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
     mask = cv2.bitwise_or(mask1, mask2)
 
-    kernel = np.ones((5, 5), np.uint8)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+    mask = cv2.erode(mask, kernel, iterations=1)
+    mask = cv2.dilate(mask, kernel, iterations=1)
+    mask = cv2.dilate(mask, kernel, iterations=1)
+    mask = cv2.erode(mask, kernel, iterations=1)
 
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    if contours:
-        largest_contour = max(contours, key=cv2.contourArea)
-        area = cv2.contourArea(largest_contour)
-
+    y_coords, x_coords = np.where(mask > 0)
+    
+    if len(x_coords) > 0 and len(y_coords) > 0:
+        moments = cv2.moments(mask)
+        area = moments['m00']
+        
         if area > 500:
-            x, y, w, h = cv2.boundingRect(largest_contour)
-
-            cx = x + w // 2
-            cy = y + h // 2
-
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 0), 2)
+            cx = int(moments['m10'] / area)
+            cy = int(moments['m01'] / area)
+            
+            x_min, x_max = np.min(x_coords), np.max(x_coords)
+            y_min, y_max = np.min(y_coords), np.max(y_coords)
+            
+            cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), (0, 0, 0), 2)
+            
             cv2.circle(frame, (cx, cy), 5, (0, 255, 0), -1)
-
+            
             cv2.putText(frame, f"Area: {int(area)}", (10, 30),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
             cv2.putText(frame, f"Center: ({cx},{cy})", (10, 70),
@@ -45,6 +49,9 @@ while True:
         else:
             cv2.putText(frame, "No significant red object", (10, 30),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+    else:
+        cv2.putText(frame, "No red object detected", (10, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
     cv2.imshow("Original + Rectangle", frame)
     cv2.imshow("Red Mask", mask)
