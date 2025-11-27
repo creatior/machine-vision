@@ -38,7 +38,7 @@ def process_image(image_path):
         return
 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (11, 11), 2)
+    blurred = cv2.GaussianBlur(gray, (11, 11), 1)
 
     sobel_kernel_x = np.array([
         [-1, 0, 1],
@@ -115,9 +115,9 @@ def process_image(image_path):
     overlay = image.copy()
     overlay[result == 255] = [0, 0, 255]
 
-    cv2.imshow("Original Image", image)
+    # cv2.imshow("Original Image", image)
     cv2.imshow("Gray and Blurred", blurred)
-    cv2.imshow("Non-Maximum Suppression", nms)
+    # cv2.imshow("Non-Maximum Suppression", nms)
     cv2.imshow("Double Threshold Result", result)
     cv2.imshow("Contoured Image", overlay)
 
