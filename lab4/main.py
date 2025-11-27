@@ -30,15 +30,15 @@ def get_quantized_angle(grad_x, grad_y, tg):
 
     return quantized_angle
 
-def process_image_with_gradients(image_path):
+def process_image(image_path):
     image = cv2.imread(image_path)
+
     if image is None:
-        print("Ошибка: изображение не найдено по указанному пути")
+        print(f"Ошибка: не удалось открыть файл {image_path}")
         return
 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    blurred = cv2.GaussianBlur(gray, (11, 11), 2)
 
     sobel_kernel_x = np.array([
         [-1, 0, 1],
@@ -64,12 +64,12 @@ def process_image_with_gradients(image_path):
             region = padded[i:i+3, j:j+3]
             grad_x[i, j] = np.sum(region * sobel_kernel_x)
             grad_y[i, j] = np.sum(region * sobel_kernel_y)
-    
+
     magnitude = np.sqrt(grad_x**2 + grad_y**2)
 
     grad_x_safe = np.where(grad_x == 0, 1e-6, grad_x)
     tg = grad_y / grad_x_safe
-    
+
     quantized_angle = get_quantized_angle(grad_x, grad_y, tg)
 
     nms = np.zeros_like(magnitude, dtype=np.uint8)
@@ -78,7 +78,7 @@ def process_image_with_gradients(image_path):
     for i in range(1, rows - 1):
         for j in range(1, cols - 1):
             direction = quantized_angle[i, j]
-            magnitude_value = magnitude[i, j]
+            mag = magnitude[i, j]
 
             if direction in [0, 4]:
                 neighbors = [magnitude[i, j - 1], magnitude[i, j + 1]]
@@ -88,19 +88,43 @@ def process_image_with_gradients(image_path):
                 neighbors = [magnitude[i - 1, j], magnitude[i + 1, j]]
             else:
                 neighbors = [magnitude[i - 1, j - 1], magnitude[i + 1, j + 1]]
-            
-            if magnitude_value > max(neighbors):
+
+            if mag > max(neighbors):
                 nms[i, j] = 255
             else:
                 nms[i, j] = 0
 
-    cv2.imshow("Original", image)
-    cv2.imshow("Gray + Blurred", blurred)
-    cv2.imshow("NMS", nms)
+    max_grad = np.max(magnitude)
+    high_level = max_grad // 3.75
+    low_level = max_grad // 10
+
+    strong_edges = (magnitude >= high_level)
+    weak_edges = ((magnitude >= low_level) & (magnitude < high_level))
+
+    result = np.zeros_like(nms, dtype=np.uint8)
+
+    result[strong_edges & (nms == 255)] = 255
+
+    for i in range(1, rows - 1):
+        for j in range(1, cols - 1):
+            if weak_edges[i, j] and nms[i, j] == 255:
+                region = result[i-1:i+2, j-1:j+2]
+                if np.any(region == 255):
+                    result[i, j] = 255
+
+    overlay = image.copy()
+    overlay[result == 255] = [0, 0, 255]
+
+    cv2.imshow("Original Image", image)
+    cv2.imshow("Gray and Blurred", blurred)
+    cv2.imshow("Non-Maximum Suppression", nms)
+    cv2.imshow("Double Threshold Result", result)
+    cv2.imshow("Contoured Image", overlay)
+
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
     return magnitude, quantized_angle
 
-mg, qa = process_image_with_gradients("dog.jpg")
+mg, qa = process_image("horse.jpg")
 print(f"МАТРИЦА ДЛИН ГРАДИЕНТОВ:\n{mg}\nМАТРИЦА УГЛОВ ГРАДИЕНТОВ:\n{qa}")
