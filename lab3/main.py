@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 KERNEL_SIZE = 7
-BLUR_PARAM = 20
+BLUR_PARAM = 40
 
 def gaussian_kernel(size, sigma):
     center = size // 2
@@ -28,10 +28,12 @@ def gaussian_filter(image, size=5, sigma=1.0):
     result = np.clip(result, 0, 255).astype(np.uint8)
     return result
 
-img = cv2.imread('images/mole.jpg', cv2.IMREAD_GRAYSCALE)
+img = cv2.imread('images/mole2.jpg', cv2.IMREAD_GRAYSCALE)
 blurred = gaussian_filter(img, size=KERNEL_SIZE, sigma=BLUR_PARAM)
+blurred_built_in = cv2.GaussianBlur(img, (KERNEL_SIZE, KERNEL_SIZE), sigmaX=BLUR_PARAM)
 
 cv2.imshow('Исходное изображение', img)
 cv2.imshow('После фильтра Гаусса', blurred)
+cv2.imshow('Встроенный фильтр Гаусса', blurred_built_in)
 cv2.waitKey(0)
 cv2.destroyAllWindows()

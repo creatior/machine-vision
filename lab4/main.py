@@ -72,12 +72,35 @@ def process_image_with_gradients(image_path):
     
     quantized_angle = get_quantized_angle(grad_x, grad_y, tg)
 
+    nms = np.zeros_like(magnitude, dtype=np.uint8)
+    rows, cols = magnitude.shape
+
+    for i in range(1, rows - 1):
+        for j in range(1, cols - 1):
+            direction = quantized_angle[i, j]
+            magnitude_value = magnitude[i, j]
+
+            if direction in [0, 4]:
+                neighbors = [magnitude[i, j - 1], magnitude[i, j + 1]]
+            elif direction in [1, 5]:
+                neighbors = [magnitude[i - 1, j + 1], magnitude[i + 1, j - 1]]
+            elif direction in [2, 6]:
+                neighbors = [magnitude[i - 1, j], magnitude[i + 1, j]]
+            else:
+                neighbors = [magnitude[i - 1, j - 1], magnitude[i + 1, j + 1]]
+            
+            if magnitude_value > max(neighbors):
+                nms[i, j] = 255
+            else:
+                nms[i, j] = 0
+
     cv2.imshow("Original", image)
     cv2.imshow("Gray + Blurred", blurred)
+    cv2.imshow("NMS", nms)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
     return magnitude, quantized_angle
 
-mg, qa = process_image_with_gradients("cat.jpg")
+mg, qa = process_image_with_gradients("dog.jpg")
 print(f"МАТРИЦА ДЛИН ГРАДИЕНТОВ:\n{mg}\nМАТРИЦА УГЛОВ ГРАДИЕНТОВ:\n{qa}")
